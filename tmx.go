@@ -232,7 +232,15 @@ func Load(file *os.File) (*Map, error) {
 	return LoadReader(file, file.Name())
 }
 
+var OpenFileFunction func(filename string) (io.ReadCloser, error)
+
 func LoadReader(file io.Reader, fileName string) (*Map, error) {
+	if OpenFileFunction == nil {
+		OpenFileFunction = func(filename string) (io.ReadCloser, error) {
+			return os.Open(filename)
+		}
+	}
+
 	decoder := xml.NewDecoder(file)
 	tmxMap := &Map{}
 	err := decoder.Decode(tmxMap)
@@ -244,7 +252,7 @@ func LoadReader(file io.Reader, fileName string) (*Map, error) {
 			} else {
 				source = filepath.Join(filepath.Dir(fileName), ts.Source)
 			}
-			tsxFile, err := os.Open(source)
+			tsxFile, err := OpenFileFunction(source)
 			if err != nil {
 				return nil, errors.Wrap(err, "unable to open tileset source file")
 			}
